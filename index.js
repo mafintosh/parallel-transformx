@@ -8,6 +8,8 @@ module.exports = class ParallelTransform extends Transform {
     super(opts)
     this._queue = new FIFO(opts.highWaterMark || 16)
     this._pending = null
+    this._concurrent = 0
+    this._finalizing = false
   }
 
   _write (data, cb) {
@@ -34,7 +36,9 @@ module.exports = class ParallelTransform extends Transform {
   }
 
   _flush (cb) {
-    cb(null)
+    this._finalizing = true
+    if (this._concurrent === 0) cb(null)
+    else this._pending = cb
   }
 
   _final (cb) {
@@ -47,6 +51,7 @@ module.exports = class ParallelTransform extends Transform {
     const data = this._queue.shift()
     this.push(data)
     if (this._pending) {
+      if (this._finalizing && this._concurrent) return
       const cb = this._pending
       this._pending = null
       cb(null)
@@ -60,7 +65,9 @@ module.exports = class ParallelTransform extends Transform {
     if (this._queue.top === this._queue.btm) this._pending = cb
     else cb(null)
 
+    this._concurrent++
     this._transform(data, (err, res) => {
+      this._concurrent--
       if (err) this.destroy(err)
       else this._queue.buffer[top] = res
       this._drain()
