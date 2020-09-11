@@ -1,6 +1,6 @@
 {
   "name": "parallel-transformx",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Parallel transform for streamx",
   "main": "index.js",
   "dependencies": {
