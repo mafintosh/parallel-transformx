@@ -47,27 +47,27 @@ module.exports = class ParallelTransform extends Transform {
   }
 
   _drain () {
-    if (this._queue.buffer[this._queue.btm] === null) return
-    const data = this._queue.shift()
-    this.push(data)
-    if (this._pending) {
-      if (this._finalizing && this._concurrent) return
-      const cb = this._pending
-      this._pending = null
-      cb(null)
+    while (this._queue.buffer[this._queue.btm] !== null) {
+      const data = this._queue.shift()
+      this._concurrent--
+      this.push(data)
+      if (this._pending && (!this._finalizing || this._concurrent === 0)) {
+        const cb = this._pending
+        this._pending = null
+        cb(null)
+      }
     }
   }
 
   _transformMany (data, cb) {
     const top = this._queue.top
     this._queue.push(null)
+    this._concurrent++
 
     if (this._queue.top === this._queue.btm) this._pending = cb
     else cb(null)
 
-    this._concurrent++
     this._transform(data, (err, res) => {
-      this._concurrent--
       if (err) this.destroy(err)
       else this._queue.buffer[top] = res
       this._drain()
