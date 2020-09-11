@@ -43,7 +43,7 @@ module.exports = class ParallelTransform extends Transform {
   }
 
   _drain () {
-    if (this._queue.buffer[this.btm] === null) return
+    if (this._queue.buffer[this._queue.btm] === null) return
     const data = this._queue.shift()
     this.push(data)
     if (this._pending) {
